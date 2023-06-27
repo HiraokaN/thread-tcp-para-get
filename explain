@@ -1,0 +1,19 @@
+[directory]
+servers
+  server list
+byte-count
+  count byte of obtained date on each path
+acc-byte-cnt 
+  count accumulative byte of obtained date on each path
+
+[shell script]
+auto-increase.sh
+  auto increase connections to server on executing
+DLtime-output.sh
+  output downloadtime and goodput on DLtime.txt file
+simple-roop.sh
+  repeat execution specified times
+
+[program]
+static.py
+   calculate mean & stderr
