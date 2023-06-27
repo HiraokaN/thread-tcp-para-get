@@ -14,7 +14,7 @@
 //#define OUTPUTFILEDLTIME
 #define AVR_OUT_OF_ORDER_ARRIVALS
 //#define BLOCK_RCV_TIME
-#define BLOCK_REQ_REC
+//#define BLOCK_REQ_REC
 //#define REQPROCESSDEBUG
 
 typedef enum {
@@ -54,7 +54,9 @@ int main(int argc, char **argv) {
 #ifdef REQ_TIME
   req_list.count = 0;
 #endif
+#ifdef REC_TIME
   rec_list.count = 0;
+#endif
 
   for (i=0; i<argc; i++) {//コマンドライン引数チェック
     if (head_request) {
@@ -116,6 +118,19 @@ int main(int argc, char **argv) {
 
   //printf("######download complete!!#####\n%fsec\n",finish - begin);
   //fprintf(stderr,"#####download complete!#####\n");
+
+  for(i=0,basetime=0.0; i<fdv.block_count; i++){
+    if (i>0 && fdv.requ_time[i] + basetime < fdv.requ_time[i-1] - 3000)
+      basetime += 3600;
+    fdv.requ_time[i] += basetime;
+  } 
+
+  for(i=0,basetime=0.0; i<fdv.block_count; i++){
+    if (i>0 && fdv.recv_time[i] + basetime < fdv.recv_time[i-1] - 3000)
+      basetime += 3600;
+    fdv.recv_time[i] += basetime;
+  }
+
 #ifndef SHOWRECVTIME
   dltime = finish - begin;
   //printf("%f %f\n", dltime < 0 ? (filesize/1000000*8)/(3600 + dltime) : (filesize/1000000*8)/dltime, dltime < 0 ? 3600 + dltime : dltime);//goodput[Mbps],DL-time,式２は短針が数字を跨いだ場合
@@ -133,32 +148,26 @@ int main(int argc, char **argv) {
 #ifdef SHOWRECVTIME
   printf("block id --- received time --- server\n");
   for(i=0; i<fdv.block_count; i++){
-    if (i>0 && fdv.recv_time[i] + basetime < fdv.recv_time[i-1] - 3000)
-      basetime += 3600;
-    fdv.recv_time[i] += basetime;
     printf("%d %f %d\n", i, fdv.recv_time[i] - begin, fdv.fromsv[i]);
   }
 #endif
 #ifdef OUTPUTRECVTIME
   int x=0,y=0;
   for(i=0; i<fdv.block_count; i++){
-    if (i>0 && fdv.recv_time[i] + basetime < fdv.recv_time[i-1] - 3000)
-        basetime += 3600;
-    fdv.recv_time[i] += basetime;
     if(fdv.fromsv[i] <= 9 ){
-	x++;
-        printf("%f -0.100000 %d\n", fdv.recv_time[i] - begin,(i+1)*(filesize/divisions)); 
+      x++;
+      printf("%f -0.100000 %d\n", fdv.recv_time[i] - begin,(i+1)*(filesize/divisions)); 
     }else{
-        y++;
-        printf("-0.100000 %f %d\n", fdv.recv_time[i] - begin,(i+1)*(filesize/divisions)); 
+      y++;
+      printf("-0.100000 %f %d\n", fdv.recv_time[i] - begin,(i+1)*(filesize/divisions)); 
     }  
   }
   printf("---------------------\n");
   for(i=0; i<fdv.block_count; i++){
     if(fdv.fromsv[i] > 9 ){
-        printf("%f -0.100000 %d\n", fdv.recv_time[i] - begin,(i+1)*(filesize/divisions));
+      printf("%f -0.100000 %d\n", fdv.recv_time[i] - begin,(i+1)*(filesize/divisions));
     }else{
-        printf("-0.100000 %f %d\n", fdv.recv_time[i] - begin,(i+1)*(filesize/divisions));
+      printf("-0.100000 %f %d\n", fdv.recv_time[i] - begin,(i+1)*(filesize/divisions));
     } 
   }
   printf("from path1: %d form path2: %d\n",x,y);
@@ -192,9 +201,6 @@ int main(int argc, char **argv) {
   int o_arrival=0;//out_of_order_arrival
   int j;
   for(i=0; i<fdv.block_count; i++){
-    if (i>0 && fdv.recv_time[i] + basetime < fdv.recv_time[i-1] - 3000)
-        basetime += 3600;
-    fdv.recv_time[i] += basetime;
     for(j=0; j<i; j++){
       if(fdv.recv_time[i] < fdv.recv_time[j]){
         o_arrival++;
@@ -291,7 +297,7 @@ for(i=0; i<rec_list.count; i++){
 
 #ifdef BLOCK_REQ_REC
   for(i=0;i<fdv.block_count;i++){
-    printf("%d,%lf,%lf,%d\n",i,fdv.requ_time[i]-begin,fdv.recv_time[i]-begin,fdv.fromsv[i]);  
+    printf("%d,%lf,%lf,%d\n",i+1,fdv.requ_time[i]-begin,fdv.recv_time[i]-begin,fdv.fromsv[i]);  
   }
 #endif
 
@@ -606,11 +612,13 @@ int receive_postprocess(struct st_servers *sv) {
     fdv.fromsv[block_num - 1] = connnum;
     mutex_unlock(&m_fdv);
 
+#ifdef REC_TIME
     rec_list.rec_time[rec_list.count] = fdv.recv_time[block_num - 1];
     rec_list.sv[rec_list.count] = sv - servers;
     rec_list.num[rec_list.count] = block_num;
     //printf("%d receive-time:%lf, from:%d\n", rec_list.count, rec_list.rec_time[rec_list.count], rec_list.sv);//DL開始からの時間でないことに注意
     rec_list.count++;
+#endif 
 
   }
 #ifdef REC_TIME
