@@ -14,6 +14,8 @@
 //#define OUTPUTFILEDLTIME
 #define AVR_OUT_OF_ORDER_ARRIVALS
 //#define BLOCK_RCV_TIME
+#define BLOCK_REQ_REC
+//#define REQPROCESSDEBUG
 
 typedef enum {
   DUP_OFF = -1,
@@ -285,6 +287,12 @@ for(i=0; i<rec_list.count; i++){
     fwrite(buf4, strlen(buf4), 1, fp4);
   }
     fclose(fp4);
+#endif
+
+#ifdef BLOCK_REQ_REC
+  for(i=0;i<fdv.block_count;i++){
+    printf("%d,%lf,%lf,%d\n",i,fdv.requ_time[i]-begin,fdv.recv_time[i]-begin,fdv.fromsv[i]);  
+  }
 #endif
 
   return 0; 
@@ -876,10 +884,12 @@ void issue_request(int sv, int start, int end) {
   char req_buf[2000];
   int req_size;
   int write_size;
+  int block_num;
   
   req_size = make_request(req_buf, sv, start, end);//リクエストヘッダ作成
   servers[sv].req_send_time = timer();
-
+  block_num = servers[sv].range[0].block_num;
+  fdv.requ_time[block_num-1] = servers[sv].req_send_time;
 #ifdef REQ_TIME
   req_list.req_time[req_list.count] = servers[sv].req_send_time;
   req_list.sv[req_list.count] = sv;

@@ -21,7 +21,7 @@
 #define MALLOC2(type, size) ((type *)malloc(sizeof(type) * (size)))
 #define PIPENUM 1 //連続で同じ経路にリクエストする数
 
-//#define REQ_TIME
+#define REQ_TIME
 #define REC_TIME
 
 struct range_req {
@@ -75,6 +75,7 @@ struct filedivision {
                                        /* [0]- */
   int block_count;                     /* block_number (1 - ) */
   float turn_time[MAX_BLK];            /*turn around time*/
+  float requ_time[MAX_BLK];
   float recv_time[MAX_BLK];
   int fromsv[MAX_BLK];
 } fdv;
@@ -121,7 +122,7 @@ void mutex_lock(pthread_mutex_t *);
 void mutex_unlock(pthread_mutex_t *);
 
 int filesize=200000000; 
-int divisions=10000;
+int divisions=50;
 
 int wait_pipe=1; /* non-stop */
 /* int wait_pipe=PIPENUM  */ /* wait for PIPENUM blocks */
